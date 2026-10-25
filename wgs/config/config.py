@@ -149,17 +149,13 @@ def refdir_data(refdir):
     for k, v in yamldata['paths'].items():
         yamldata['paths'][k] = os.path.join(refdir, v)
 
-    # Vazquez patch: default b37/GRCh37 chromosomes when the metadata.yaml
-    # under the shared assemblies/GRCh37/ ref dir omits them (cc2378-owned,
-    # unwritable to us).
-    yamldata.setdefault('params', {}).setdefault(
-        'chromosomes', [str(i) for i in range(1, 23)] + ['X', 'Y'])
-    # Default reference file paths for the shahlab WGS pipeline. Points at
-    # mondrian-ref-GRCh37/human/ for files we already have; het_positions_titan,
-    # refdata_destruct, refdata_remixt still need to be downloaded from
-    # shahcompbio's registry.
+    # Vazquez patch: default b37/GRCh37 keys when the shared assemblies/GRCh37/
+    # ref dir's metadata.yaml omits them (cc2378-owned, unwritable to us).
     _MONDRIAN = '/data/vazquez/isabl_data_lake/assemblies/mondrian-ref-GRCh37/human'
     _VEP_CACHE = '/data/vazquez/isabl_data_lake/assemblies/GRCh37/vep'
+
+    # Paths. het_positions_titan / refdata_destruct / refdata_remixt still
+    # need to be downloaded from shahcompbio's private Azure registry.
     yamldata.setdefault('paths', {})
     for key, path in [
         ('gtf',           f'{_MONDRIAN}/GRCh37-lite.gtf'),
@@ -168,5 +164,19 @@ def refdir_data(refdir):
         ('reference_vep', _VEP_CACHE),
     ]:
         yamldata['paths'].setdefault(key, path)
+
+    # Params. vcf2maf resolves the FASTA as os.path.join(reference_vep,
+    # vep_fasta_suffix); GRCh37-lite.fa + .fai are symlinked into _VEP_CACHE
+    # from the mondrian copy. VEP cache under _VEP_CACHE/homo_sapiens/114_GRCh37
+    # is Ensembl 114 (no bundled FASTA, hence the symlink).
+    yamldata.setdefault('params', {})
+    for key, val in [
+        ('chromosomes',      [str(i) for i in range(1, 23)] + ['X', 'Y']),
+        ('vep_fasta_suffix', 'GRCh37-lite.fa'),
+        ('ncbi_build',       'GRCh37'),
+        ('cache_version',    '114'),
+        ('species',          'homo_sapiens'),
+    ]:
+        yamldata['params'].setdefault(key, val)
 
     return yamldata
